@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Londres en 5 días — mapa interactivo basado estrictamente en el itinerario original.">
+<title>Londres en 5 días · mapa de rutas</title>
+<style>
+:root{
+  --bg:#F6F8FB;--ink:#14202E;--mute:#5B6B7C;--land:#EDF0F4;--water:#BCDDF4;
+  --park:#CDE7D1;--card:#FFFFFF;--line:#D9E0E8;--halo:#EDF0F4;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+@media(prefers-color-scheme:dark){
+ :root:not([data-theme="light"]){--bg:#0F1620;--ink:#E8EEF5;--mute:#98A8B9;--land:#1A2430;--water:#1B3A55;--park:#1F3A2B;--card:#16202B;--line:#2A3745;--halo:#1A2430}
+}
+:root[data-theme="dark"]{--bg:#0F1620;--ink:#E8EEF5;--mute:#98A8B9;--land:#1A2430;--water:#1B3A55;--park:#1F3A2B;--card:#16202B;--line:#2A3745;--halo:#1A2430}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
+main{max-width:1220px;margin:0 auto;padding:28px 16px 45px}
+h1{font-size:clamp(28px,5vw,46px);font-weight:800;margin:0 0 5px;letter-spacing:-.035em}
+.sub{margin:0 0 18px;color:var(--mute);font-size:15px;max-width:900px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 14px system-ui;cursor:pointer}
+.chip i{width:14px;height:14px;border-radius:50%;display:inline-block}
+.chip[aria-pressed="true"]{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset}
+.chip:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.reset{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer}
+.mapwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--land)}
+.map-inner{min-width:820px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.lab{font-size:11.5px;font-weight:750;fill:var(--ink);paint-order:stroke;stroke:var(--halo);stroke-width:4px;stroke-linejoin:round}
+.context{font-size:12px;font-style:italic;fill:var(--mute)}
+.badge{font-size:13px;font-weight:800;fill:#fff}
+.day{transition:opacity .2s}.dim{opacity:.10}
+.key{display:flex;flex-wrap:wrap;gap:18px;margin:10px 2px 20px;color:var(--mute);font-size:13px}
+.key svg{min-width:0;width:44px;height:10px;display:inline-block;vertical-align:middle;margin-right:5px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:15px}
+.card{background:var(--card);border:1px solid var(--line);border-top:6px solid var(--c);border-radius:13px;padding:15px 17px;transition:opacity .2s}
+.card h2{margin:0;font-size:19px}
+.card .zone{margin:2px 0 13px;color:var(--mute);font-size:13px}
+.card .narrative{margin:0 0 14px;font-size:13px;color:var(--mute)}
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{display:grid;grid-template-columns:92px 1fr;gap:9px;padding:7px 0;border-top:1px solid color-mix(in srgb,var(--line) 75%,transparent);font-size:13px}
+.timeline li:first-child{border-top:0}
+.time{font-weight:800;color:var(--c)}
+.food{margin-top:15px;padding:12px 13px;border-radius:11px;background:color-mix(in srgb,var(--c) 7%,var(--card));border:1px solid var(--line)}
+.food h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 7px}
+.food ul{list-style:none;margin:0;padding:0}
+.food li{padding:4px 0;font-size:12.5px}
+.food b{color:var(--ink)}
+.optional{display:inline-block;margin-left:5px;font-size:10px;padding:2px 6px;border:1px solid var(--line);border-radius:999px;color:var(--mute)}
+.note{margin-top:22px;color:var(--mute);font-size:12px}
+@media(max-width:760px){
+ .toolbar{align-items:flex-start;flex-direction:column}
+ .chips{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:4px}
+ .chip{flex:0 0 auto}
+ .cards{grid-template-columns:1fr}
+ .timeline li{grid-template-columns:78px 1fr}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Londres en 5 días</h1>
+<p class="sub">Mapa interactivo y planificación detallada. El contenido, orden, horarios, opciones y planes B siguen el itinerario original; el mapa es una representación esquemática de las posiciones.</p>
+
+<div class="toolbar">
+  <div class="chips" id="chips" aria-label="Filtrar por jornada"></div>
+  <button class="reset" id="reset" type="button">Ver todo</button>
+</div>
+
+<div class="mapwrap"><div class="map-inner">
+<svg id="map" viewBox="0 0 1240 650" role="img" aria-label="Mapa esquemático de Londres con las cinco jornadas">
+<rect width="1240" height="650" fill="var(--land)"/>
+</svg>
+</div></div>
+
+<div class="key">
+<span><svg viewBox="0 0 44 10"><line x1="2" y1="5" x2="42" y2="5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>A pie</span>
+<span><svg viewBox="0 0 44 10"><line x1="2" y1="5" x2="42" y2="5" stroke="currentColor" stroke-width="4" stroke-dasharray="9 6"/></svg>Metro / tren / DLR / Elizabeth line</span>
+<span><svg viewBox="0 0 44 10"><line x1="2" y1="5" x2="42" y2="5" stroke="currentColor" stroke-width="4" stroke-dasharray="1 7" stroke-linecap="round"/></svg>Running</span>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<p class="note"><strong>Fuente del itinerario:</strong> documento original aportado. El mapa no pretende ser cartografía navegable: las posiciones de los hitos son aproximadas para visualizar la secuencia. Los elementos marcados como opcionales, planes B o sujetos a comprobación se mantienen como tales y no sustituyen al plan principal.</p>
+</main>
+
+<script>
+"use strict";
+
+/* ===== PROYECCIÓN SVG ===== */
+const K=[5856,9396], O=[-0.222,51.548];
+const project=(lat,lon)=>[(lon-O[0])*K[0],(O[1]-lat)*K[1]];
+const H=[51.515149,-0.172032];
+const HEATHROW=[51.4700,-0.4543];
+
+/* ===== ITINERARIO ORIGINAL: NO SE AÑADEN PARADAS AL PLAN ===== */
+const D=[
+{
+ id:"vie",tab:"Vie 9",zone:"City, Horizon 22 y South Bank de noche",c:"#7B3FE4",
+ bpos:[51.512,-0.087],
+ narrative:"Llegada, check-in y tarde concentrada en la City. Horizon 22 tiene el turno principal a las 17:15. Después se recorre Bank, St Paul's, Millennium Bridge, Tate Modern y Globe, se cena en The Anchor Bankside o Borough Yards y se vuelve andando por South Bank con London Eye y Big Ben iluminados.",
+ stops:[
+  {time:"14:20–16:30",n:"Aterrizaje, Elizabeth line y check-in en Blue Daws Private Hotel.",a:[51.515149,-0.172032],t:1,l:"Blue Daws Private Hotel",s:"b"},
+  {time:"16:45",n:"District/Circle hasta Monument.",a:[51.5101,-0.0859],t:1,l:"Monument",s:"r"},
+  {time:"17:15–18:00",n:"Horizon 22 — luz dorada. Plan B: sábado ~15:30. Gratis, con documento de identidad.",a:[51.5167,-0.0814],l:"Horizon 22",s:"t"},
+  {time:"18:00–18:45",n:"Leadenhall Market y Royal Exchange (Bank), con Monument de paso.",a:[51.5133,-0.0856],l:"Leadenhall / Royal Exchange",s:"b"},
+  {time:"18:45–19:15",n:"St Paul's iluminada por fuera y Reflection Gardens.",a:[51.5138,-0.0984],l:"St Paul's",s:"l"},
+  {time:"19:15–20:30",n:"Millennium Bridge y Tate Modern (gratis, abierto hasta las 21:00).",a:[51.5080,-0.0985],l:"Millennium Bridge / Tate",s:"t"},
+  {time:"20:30–22:00",n:"Shakespeare's Globe por fuera. Cena en The Anchor Bankside, o en Borough Yards, que sí funciona de noche. London Bridge queda de paso.",a:[51.5069,-0.0975],l:"Globe",s:"b"},
+  {time:"22:00",n:"Vuelta andando por South Bank, con London Eye y Big Ben iluminados.",a:[51.5033,-0.1196],l:"London Eye / Big Ben",s:"r"},
+  {time:"fin",n:"Regreso andando al hotel.",a:H,l:"Blue Daws Private Hotel",s:"b"}
+ ],
+ food:[
+  ["The Anchor Bankside","Pub inglés histórico con terraza junto al Támesis; opción para cenar con una pinta, comida tradicional y vistas al río iluminado."],
+  ["Borough Yards","Complejo gastronómico moderno bajo los arcos de tren; funciona bien de noche."],
+  ["Leadenhall Market","Galería victoriana techada con tabernas y locales para cerveza o picar algo rápido."],
+  ["Nota","Borough Market ya estará cerrado por la noche; queda para el domingo."]
+ ]
+},
+{
+ id:"sab",tab:"Sáb 10",zone:"Running y Oeste",c:"#1F7AE0",
+ bpos:[51.503,-0.181],
+ narrative:"Running temprano por los parques reales, ducha y después Notting Hill. El sábado es el día completo de Portobello. La tarde continúa por Holland Park, Kensington High Street y el Museo de Historia Natural a las 16:00. Se termina en Royal Albert Hall, Harrods, Sloane Square y King's Road.",
+ stops:[
+  {time:"7:45–8:50",n:"Running (~1 h): hotel → St James's Park → Buckingham Palace → Green Park → Hyde Park Corner → Serpentine Gallery → Kensington Gardens (Albert Memorial, Kensington Palace por fuera) y vuelta.",a:[51.5035,-0.1730],run:1,via:[[51.5008,-0.1248],[51.5016,-0.1415],[51.5010,-0.1505],[51.5070,-0.1635],[51.5075,-0.1750],[51.5130,-0.1770],[51.5080,-0.1740]],l:"Running / parques reales",s:"t"},
+  {time:"8:50–9:45",n:"Ducha en el hotel.",a:H,l:"Hotel",s:"b"},
+  {time:"10:15–13:00",n:"Notting Hill: Portobello Road (el sábado es cuando está completo), Lancaster Rd, Elgin Crescent, St Luke's Mews, Notting Hill Bookshop, Electric Cinema y Westbourne Grove. Desayuno en Joe and the Juice.",a:[51.5160,-0.2050],t:1,via:[[51.5160,-0.2050],[51.5137,-0.2030],[51.5118,-0.2010],[51.5120,-0.2048],[51.5125,-0.2015],[51.5128,-0.1975],[51.5150,-0.1920]],l:"Notting Hill / Portobello",s:"t"},
+  {time:"13:00–14:00",n:"Comida en la zona de Westbourne Grove (Crisp). Comprar algo para llevar para el picnic.",a:[51.5150,-0.1920],l:"Crisp",s:"r"},
+  {time:"14:00–15:15",n:"Holland Park (Kyoto Garden y Leighton House).",a:[51.5030,-0.2030],l:"Holland Park",s:"b"},
+  {time:"15:15–15:45",n:"Kensington High Street. Holland Walk hasta la calle; paseo de tiendas con el edificio Barkers y Whole Foods.",a:[51.4990,-0.1920],l:"Kensington High St",s:"r"},
+  {time:"15:45–15:55",n:"District/Circle desde High Street Kensington hasta South Kensington (2 paradas).",a:[51.4945,-0.1748],t:1,l:"South Kensington",s:"b"},
+  {time:"16:00–17:45",n:"Museo de Historia Natural con entrada con hora a las 16:00.",a:[51.4967,-0.1764],l:"Natural History Museum",s:"l"},
+  {time:"17:45–18:00",n:"Royal Albert Hall por fuera.",a:[51.5009,-0.1774],l:"Royal Albert Hall",s:"r"},
+  {time:"18:00–19:30",n:"Harrods (cierra a las 21:00).",a:[51.4994,-0.1633],l:"Harrods",s:"b"},
+  {time:"19:30–20:30",n:"Sloane Square y King's Road (Chelsea) de noche. Cena: Junk o Hot Saint Pizza.",a:[51.4924,-0.1565],l:"Sloane / King's Road",s:"t"}
+ ],
+ planB:"Plan B de Horizon 22: salir de Kensington a las 14:45 y reservar el sábado a ~15:30. Se sacrificaría el Museo de Historia Natural.",
+ food:[
+  ["Desayuno · Joe & the Juice (Portobello Road)","Zumos naturales, café y sándwiches tostados."],
+  ["Comida · Crisp Pizza W6","Pizza de masa fina y muy crujiente, ideal para recoger y comer en Holland Park."],
+  ["Parada rápida · Whole Foods Market","Supermercado gourmet con bufés al peso de comida caliente y ensaladas."],
+  ["Café · Treelogy Specialty Coffee","Café de especialidad y repostería artesana, muy cerca del Museo de Historia Natural."],
+  ["Cena · Hot Saint Pizza (King's Road)","Pizzas artesanas y focaccias al corte."],
+  ["Cena · Junk (King's Road / Sloane Square)","Smash burgers."]
+ ]
+},
+{
+ id:"dom",tab:"Dom 11",zone:"Este, Borough, Torre, Canary Wharf y West End nocturno",c:"#F08A00",
+ bpos:[51.507,-0.075],
+ narrative:"Mañana temprana en el East End, comida en Borough, Torre de Londres y después Canary Wharf al encenderse las luces. La última parte es el West End nocturno completo, con Mayfair, Piccadilly, Regent Street, Liberty, Carnaby, Oxford Street, Soho, Chinatown, Seven Dials, Covent Garden y los demás puntos del itinerario.",
+ stops:[
+  {time:"7:45 salida",n:"Salida del hotel hacia Columbia Road.",a:H,t:1,l:"Hotel",s:"b"},
+  {time:"8:35–9:35",n:"Columbia Road Flower Market, en su mejor hora.",a:[51.5289,-0.0689],l:"Columbia Road",s:"r"},
+  {time:"9:40–10:30",n:"Beigel Bake de desayuno y Brick Lane.",a:[51.5242,-0.0719],l:"Brick Lane / Beigel Bake",s:"b"},
+  {time:"10:30–11:30",n:"Spitalfields Market. Dennis Severs' House y Box Park solo si os cuadran (comprobad horarios).",a:[51.5194,-0.0757],l:"Spitalfields",s:"r"},
+  {time:"12:00–13:15",n:"Tube hasta London Bridge y Borough Market como comida. Confirmar el horario del domingo.",a:[51.5050,-0.0902],t:1,l:"Borough Market",s:"b"},
+  {time:"13:30–13:45",n:"Paseo hasta Tower Bridge y cruzarlo.",a:[51.5055,-0.0754],l:"Tower Bridge",s:"r"},
+  {time:"13:45–16:15",n:"Torre de Londres. Hacer primero las Joyas de la Corona. Comprobar la última entrada.",a:[51.5081,-0.0759],l:"Torre de Londres",s:"l"},
+  {time:"16:15–16:50",n:"St Katharine Docks y Sir Sydney Smith (pizzas) como merienda.",a:[51.5071,-0.0717],l:"St Katharine Docks",s:"b"},
+  {time:"17:00–17:30",n:"St Dunstan in the East, antes de que cierre al anochecer, y Monument por fuera.",a:[51.5097,-0.0822],l:"St Dunstan / Monument",s:"r"},
+  {time:"17:40",n:"DLR desde Bank hasta Canary Wharf.",a:[51.5142,-0.0886],t:1,l:"Bank / DLR",s:"b"},
+  {time:"18:00–18:45",n:"Canary Wharf con las luces ya encendidas: Canada Square, Crossrail Place y sus rascacielos.",a:[51.5054,-0.0235],l:"Canary Wharf",s:"t"},
+  {time:"18:45–19:15",n:"Elizabeth line directa hasta Bond Street.",a:[51.5147,-0.1498],t:1,l:"Bond Street",s:"b"},
+  {time:"19:15–22:30",n:"West End nocturno: Mayfair (Mount Street), Piccadilly Circus, Regent Street, Liberty, Carnaby y Oxford St. Soho y Chinatown con cena en Bun House, Napoli on the Road o Junk. Neal's Yard, Goodwin's Court, Seven Dials, Covent Garden (Arcade), Cecil Court y MinaLima por fuera, Somerset House (patio) y Trafalgar Square. Vuelta andando al hotel.",a:[51.5110,-0.1325],via:[[51.5097,-0.1520],[51.5101,-0.1340],[51.5120,-0.1410],[51.5130,-0.1400],[51.5145,-0.1400],[51.5130,-0.1300],[51.5125,-0.1300],[51.5130,-0.1265],[51.5120,-0.1223],[51.5140,-0.1250],[51.5125,-0.1240],[51.5080,-0.1255]],l:"West End nocturno",s:"r"},
+  {time:"fin",n:"Vuelta andando al hotel.",a:H,l:"Blue Daws Private Hotel",s:"b"}
+ ],
+ skyGarden:"Sky Garden: solo si ya tenéis reserva. Con Horizon 22 hecho es redundante.",
+ food:[
+  ["Mañana · Beigel Bake","24 h; clásico de salt beef con mostaza y pepinillo, o salmón con queso crema."],
+  ["Mañana · Spitalfields Market","Street food asiática, smash burgers, tacos y repostería."],
+  ["Mañana · Boxpark Shoreditch","Street food rápida en contenedores."],
+  ["Comida · Borough Market / The Black Pig","Puestos de comida caliente internacional; The Black Pig, bocadillos de cerdo ibérico en ciabatta."],
+  ["Alternativa · Borough Yards","Alternativa cercana a Borough Market."],
+  ["Merienda · Sir Sydney Smith","Pub tradicional en Dock Street con pizzas artesanas."],
+  ["Cena · Bun House","Baos cantoneses en Chinatown."],
+  ["Cena · Junk Soho","Smash burgers crujientes estilo francés."],
+  ["Cena · Supernova","Smash burgers, Peter Street, Soho."],
+  ["Cena · Bun n Sum","Dim sum artesanal y smash burgers."],
+  ["Cena · Arcade Food Hall","Covent Garden / Centre Point, barras de cocinas del mundo."]
+ ]
+},
+{
+ id:"lun",tab:"Lun 12",zone:"Bloomsbury y Norte (ruta lineal)",c:"#1E9E5A",
+ bpos:[51.535,-0.145],
+ narrative:"Ruta lineal desde el British Museum hacia Euston y King's Cross, siguiendo después el Regent's Canal hasta Camden. Se aprovecha la luz dorada de Primrose Hill y se continúa por Regent's Park y Marylebone antes de cerrar con Little Venice y Paddington Basin de noche.",
+ stops:[
+  {time:"10:00–11:45",n:"British Museum (con franja reservada).",a:[51.5194,-0.1270],l:"British Museum",s:"l"},
+  {time:"12:00–13:15",n:"Comida en Roti King (Euston) y luego King's Cross: Coal Drops Yard, Granary Square, Platform 9¾ y Word on the Water.",a:[51.5282,-0.1330],t:1,via:[[51.5352,-0.1240]],l:"Roti King / King's Cross",s:"r"},
+  {time:"13:30–14:30",n:"Paseo por Regent's Canal hasta Camden.",a:[51.5400,-0.1370],l:"Regent's Canal",s:"t"},
+  {time:"14:30–16:30",n:"Camden High St, Camden Market y The Roundhouse.",a:[51.5417,-0.1466],l:"Camden Market",s:"r"},
+  {time:"16:45–17:30",n:"Primrose Hill, con vistas en luz dorada (el sol se pone a las 18:00).",a:[51.5393,-0.1608],l:"Primrose Hill",s:"t"},
+  {time:"17:30–18:30",n:"Regent's Park. Opcional: Daunt Books Marylebone antes de que cierre.",a:[51.5290,-0.1550],l:"Regent's Park",s:"r"},
+  {time:"18:30–19:30",n:"Cena en The Seashell of Lisson Grove.",a:[51.5226,-0.1708],l:"The Seashell",s:"b"},
+  {time:"19:45–21:00",n:"Little Venice y Paddington Basin de noche. Café en Dolce Cafe Paddington, o cena en Market Halls Paddington como alternativa.",a:[51.5219,-0.1840],l:"Little Venice",s:"l"},
+  {time:"fin",n:"Paddington Basin / final de la jornada.",a:[51.5180,-0.1750],l:"Paddington Basin",s:"r"}
+ ],
+ food:[
+  ["Comida · Roti King (Euston)","Comida callejera malasia; plato estrella: roti canai recién hecho con dhal o curry. Ir con margen."],
+  ["Picoteo · Camden Market","Arepas, noodles, halloumi fries y birria tacos junto al canal y los establos."],
+  ["Cena · The Seashell of Lisson Grove","Clásico de Marylebone para el fish and chips londinense."],
+  ["Cena alternativa · Market Halls Paddington","Mercado gastronómico bajo techo con terraza acristalada y varios puestos independientes."],
+  ["Café / merienda · Dolce Cafe Paddington","Cafetería italiana a orillas de Paddington Basin."]
+ ]
+},
+{
+ id:"mar",tab:"Mar 13",zone:"Westminster y vuelta",c:"#D81B60",
+ bpos:[51.500,-0.126],out:HEATHROW,
+ narrative:"Última mañana corta: desayuno, Westminster Abbey con reserva y Big Ben. A las 11:15 se recogen las maletas y se sale al aeropuerto con margen para el vuelo de las 15:25. El itinerario indica Elizabeth line (~1 h) y comida en el aeropuerto.",
+ stops:[
+  {time:"8:30",n:"Desayuno en Ave o Venice London.",a:[51.4975,-0.1260],l:"Ave / Venice London",s:"r"},
+  {time:"9:30–11:00",n:"Westminster Abbey (reserva con hora) y Big Ben.",a:[51.5000,-0.1260],l:"Westminster Abbey / Big Ben",s:"l"},
+  {time:"11:15–11:45",n:"Recoger maletas y salir hacia el aeropuerto con margen para el vuelo de las 15:25 (Elizabeth line, ~1 h). Comer en el aeropuerto.",a:H,l:"Blue Daws Private Hotel",s:"b"}
+ ],
+ food:[
+  ["Desayuno · Ave","Cafetería de café y repostería para un desayuno rápido antes de la Abadía."],
+  ["Desayuno alternativo · Venice London","Alternativa de desayuno."],
+  ["Comida","En el aeropuerto, o algo rápido para llevar de camino."]
+ ]
+}
+];
+
+/* ===== FONDO ESQUEMÁTICO ===== */
+const svg=document.getElementById("map");
+const parks=[
+ [[51.5027,-0.1527],[51.5131,-0.1590],[51.5105,-0.1890],[51.5035,-0.1870],[51.5010,-0.1600]],
+ [[51.5235,-0.1690],[51.5320,-0.1640],[51.5340,-0.1500],[51.5260,-0.1480]],
+ [[51.5365,-0.1650],[51.5420,-0.1640],[51.5415,-0.1580],[51.5370,-0.1590]],
+ [[51.5035,-0.2060],[51.5060,-0.2010],[51.5040,-0.1990],[51.5010,-0.2010]],
+ [[51.5000,-0.1280],[51.5040,-0.1260],[51.5050,-0.1210],[51.5010,-0.1200]]
+];
+const river=[
+ [51.479,-0.200],[51.482,-0.175],[51.485,-0.150],[51.488,-0.126],[51.495,-0.125],
+ [51.501,-0.122],[51.506,-0.119],[51.509,-0.108],[51.509,-0.098],[51.508,-0.088],
+ [51.506,-0.075],[51.504,-0.064],[51.508,-0.048],[51.508,-0.034],[51.500,-0.033],
+ [51.490,-0.025],[51.480,-0.013]
+];
+const pts=a=>a.map(q=>project(q[0],q[1]).map(v=>v.toFixed(1)).join(",")).join(" ");
+let bg="";
+parks.forEach(a=>bg+=`<polygon points="${pts(a)}" fill="var(--park)"/>`);
+bg+=`<polyline points="${pts(river)}" fill="none" stroke="var(--water)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>`;
+function context(lat,lon,t){const q=project(lat,lon);return `<text class="context" x="${q[0]}" y="${q[1]}">${t}</text>`}
+bg+=context(51.5075,-0.156,"Hyde Park")+context(51.509,-0.188,"Kensington Gardens")+context(51.530,-0.159,"Regent's Park")+context(51.490,-0.145,"Río Támesis");
+svg.insertAdjacentHTML("beforeend",bg);
+
+/* ===== RUTAS ===== */
+const dash={walk:"",tr:"11 8",run:"1 8"};
+function offset(s){return({r:[12,4,"start"],l:[-12,4,"end"],t:[0,-13,"middle"],b:[0,18,"middle"]}[s||"r"])}
+function makePath(points){return points.map((q,i)=>`${i?"L":"M"}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(" ")}
+
+D.forEach((day,di)=>{
+ const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+ g.classList.add("day");g.dataset.i=di;
+ let prev=project(H[0],H[1]);
+
+ day.stops.forEach((s,si)=>{
+   const points=[prev];
+   (s.via||[]).forEach(v=>points.push(project(v[0],v[1])));
+   points.push(project(s.a[0],s.a[1]));
+   const kind=s.run?"run":s.t?"tr":"walk";
+   const d=makePath(points);
+   g.insertAdjacentHTML("beforeend",`<path d="${d}" fill="none" stroke="var(--halo)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`);
+   g.insertAdjacentHTML("beforeend",`<path d="${d}" fill="none" stroke="${day.c}" stroke-width="${s.run?3:4}" stroke-dasharray="${dash[kind]}" stroke-linecap="round" stroke-linejoin="round"/>`);
+   prev=project(s.a[0],s.a[1]);
+ });
+
+ if(day.back){
+   const d=makePath([prev,project(H[0],H[1])]);
+   const kind=day.back==="walk"?"walk":"tr";
+   g.insertAdjacentHTML("beforeend",`<path d="${d}" fill="none" stroke="var(--halo)" stroke-width="9" stroke-linecap="round"/>`);
+   g.insertAdjacentHTML("beforeend",`<path d="${d}" fill="none" stroke="${day.c}" stroke-width="4" stroke-dasharray="${dash[kind]}" stroke-linecap="round"/>`);
+ }
+ if(day.out){
+   const d=makePath([project(H[0],H[1]),project(day.out[0],day.out[1])]);
+   g.insertAdjacentHTML("beforeend",`<path d="${d}" fill="none" stroke="var(--halo)" stroke-width="9" stroke-linecap="round"/>`);
+   g.insertAdjacentHTML("beforeend",`<path d="${d}" fill="none" stroke="${day.c}" stroke-width="4" stroke-dasharray="11 8" stroke-linecap="round"/>`);
+   const q=project(day.out[0],day.out[1]);
+   g.insertAdjacentHTML("beforeend",`<text class="lab" x="${q[0]+8}" y="${q[1]-10}">Heathrow</text>`);
+ }
+
+ day.stops.forEach((s,si)=>{
+   const q=project(s.a[0],s.a[1]),m=offset(s.s);
+   g.insertAdjacentHTML("beforeend",`<g><title>${day.tab}, ${si+1}. ${s.n}</title><circle cx="${q[0]}" cy="${q[1]}" r="9" fill="${day.c}" stroke="#fff" stroke-width="2.5"/><text x="${q[0]}" y="${q[1]+4}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">${si+1}</text>${s.l?`<text class="lab" x="${q[0]+m[0]}" y="${q[1]+m[1]}" text-anchor="${m[2]}">${s.l}</text>`:""}</g>`);
+ });
+ const b=project(day.bpos[0],day.bpos[1]);
+ const txt=day.tab+" · "+day.zone.split(" y ")[0];
+ const w=Math.max(105,txt.length*6.8+22);
+ g.insertAdjacentHTML("beforeend",`<g><rect x="${b[0]-w/2}" y="${b[1]-14}" width="${w}" height="28" rx="14" fill="${day.c}"/><text class="badge" x="${b[0]}" y="${b[1]+4.5}" text-anchor="middle">${txt}</text></g>`);
+ svg.appendChild(g);
+});
+const h=project(H[0],H[1]);
+svg.insertAdjacentHTML("beforeend",`<g><circle cx="${h[0]}" cy="${h[1]}" r="9" fill="var(--ink)" stroke="var(--land)" stroke-width="3"/><text class="lab" x="${h[0]}" y="${h[1]+25}" text-anchor="middle">Blue Daws Private Hotel · 135 Sussex Gardens</text></g>`);
+
+/* ===== TARJETAS ===== */
+const chips=document.getElementById("chips"),cards=document.getElementById("cards");
+D.forEach((d,i)=>{
+ chips.insertAdjacentHTML("beforeend",`<button class="chip" style="--c:${d.c}" data-i="${i}" aria-pressed="false"><i style="background:${d.c}"></i>${d.tab}</button>`);
+ let html=`<section class="card" style="--c:${d.c}" data-i="${i}"><h2>${d.tab}</h2><div class="zone">${d.zone}</div><p class="narrative">${d.narrative}</p><ol class="timeline">`;
+ d.stops.forEach(s=>html+=`<li><span class="time">${s.time}</span><span>${s.n}</span></li>`);
+ html+="</ol>";
+ if(d.planB)html+=`<div class="food"><h3>Plan B</h3><div>${d.planB}</div></div>`;
+ if(d.skyGarden)html+=`<div class="food"><h3>Nota del itinerario</h3><div>${d.skyGarden}</div></div>`;
+ html+=`<div class="food"><h3>Extra · dónde comer (el plan no cambia)</h3><ul>`;
+ d.food.forEach(f=>html+=`<li><b>${f[0]}</b> — ${f[1]}</li>`);
+ html+="</ul></div></section>";
+ cards.insertAdjacentHTML("beforeend",html);
+});
+
+/* ===== FILTRO ===== */
+let sel=-1;
+function apply(){
+ document.querySelectorAll(".day,.card").forEach(el=>el.classList.toggle("dim",sel>=0 && +el.dataset.i!==sel));
+ document.querySelectorAll(".chip").forEach(el=>el.setAttribute("aria-pressed",String(+el.dataset.i===sel)));
+}
+chips.addEventListener("click",e=>{
+ const b=e.target.closest(".chip");if(!b)return;
+ const i=+b.dataset.i;sel=sel===i?-1:i;apply();
+});
+document.getElementById("reset").addEventListener("click",()=>{sel=-1;apply()});
+</script>
+</body>
+</html>
